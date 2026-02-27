@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>IPP v2.1 — Captura de datos</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#0B1B2B;--card:#122236;--input:#172D45;--outer:#1a1030;
+  --accent:#E6E600;--accent2:#d4d400;--white:#fff;--gray:#8899AA;--muted:#5A6D7E;
+  --green:#00C853;--red:#FF3B3B;--orange:#FF9800;--border:#1E3A54;--r:12px;--rl:16px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'DM Sans',sans-serif;background:var(--outer);min-height:100vh;display:flex;justify-content:center;color:var(--white);-webkit-font-smoothing:antialiased}
+#app{width:100%;max-width:390px;min-height:100vh;background:var(--bg);position:relative;overflow-x:hidden;overflow-y:auto}
+.statusbar{display:flex;justify-content:space-between;align-items:center;padding:8px 20px;font-size:12px;color:var(--gray);background:var(--bg);position:sticky;top:0;z-index:100}
+.statusbar .t{font-weight:600;color:var(--white)}
+.hdr{display:flex;align-items:center;padding:12px 20px;gap:12px}
+.back{background:0;border:0;color:var(--white);font-size:22px;cursor:pointer;padding:4px 8px;border-radius:8px}
+.htitle{flex:1;text-align:center;font-size:16px;font-weight:600;padding-right:40px}
+.pill{display:inline-block;background:var(--input);border:1px solid var(--border);border-radius:20px;padding:6px 16px;font-size:13px;font-weight:500}
+.conn{display:flex;align-items:center;gap:6px;justify-content:center;padding:4px 0;font-size:11px;color:var(--green)}
+.conn::before{content:'';width:6px;height:6px;background:var(--green);border-radius:50%}
+.screen{display:none;padding-bottom:100px;min-height:calc(100vh - 50px);animation:fadeIn .3s ease}
+.screen.on{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
+.body{padding:0 20px 20px}
+h1{font-size:20px;font-weight:700;margin-bottom:4px;text-align:center}
+.sub{font-size:13px;color:var(--gray);margin-bottom:16px;text-align:center}
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--rl);padding:16px;margin-bottom:12px;cursor:pointer;position:relative;transition:.2s}
+.card:hover{border-color:var(--accent)}
+.card-row{display:flex;align-items:center;gap:14px}
+.card-ico{width:50px;height:50px;background:linear-gradient(135deg,var(--accent),#aacc00);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.card h3{font-size:14px;font-weight:600;color:var(--white);margin-bottom:2px}
+.card p{font-size:12px;color:var(--gray);margin:0}
+.badge{position:absolute;top:12px;right:12px;background:var(--accent);color:#000;font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.5px}
+.fg{margin-bottom:14px}
+.fr{display:flex;gap:10px}
+.fr .fg{flex:1}
+.fg label{display:block;font-size:11px;font-weight:500;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.fg input,.fg select{width:100%;background:var(--input);border:1px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--white);font-family:inherit;font-size:14px;outline:0;transition:.2s}
+.fg input:focus,.fg select:focus{border-color:var(--accent)}
+.fg select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238899AA' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+.fg select option{background:var(--bg);color:var(--white)}
+.tgl{display:flex;align-items:center;gap:16px;margin-top:6px}
+.tgl-opt{display:flex;align-items:center;gap:6px;cursor:pointer;font-size:14px}
+.tgl-r{width:20px;height:20px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;transition:.2s}
+.tgl-r.on{border-color:var(--accent);background:var(--accent)}
+.tgl-r.on::after{content:'';width:8px;height:8px;background:#000;border-radius:50%}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
+.chip{background:var(--input);border:1px solid var(--border);border-radius:20px;padding:8px 14px;font-size:12px;color:var(--gray);cursor:pointer;transition:.2s;user-select:none}
+.chip.sel{background:rgba(230,230,0,.15);border-color:var(--accent);color:var(--accent)}
+.btn{width:100%;border:0;border-radius:30px;padding:15px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;margin-top:12px;transition:.2s}
+.btn-p{background:var(--accent);color:#000}
+.btn-p:hover{background:var(--accent2)}
+.btn-p:disabled{opacity:.4;cursor:not-allowed}
+.btn-s{background:0;color:var(--accent);padding:12px;font-size:13px;text-decoration:underline;text-underline-offset:3px;border:0;width:100%;font-family:inherit;cursor:pointer}
+.btn-o{background:0;border:1px solid var(--border);color:var(--white);border-radius:30px;padding:14px;font-family:inherit;font-size:14px;width:100%;cursor:pointer;margin-top:8px}
+.sectit{font-size:13px;font-weight:600;color:var(--accent);margin:20px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px}
+.summ-sec{margin-bottom:16px}
+.summ-sec h3{color:var(--accent);font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.sr{display:flex;justify-content:space-between;padding:5px 0;font-size:13px}
+.sr .l{color:var(--gray)}.sr .v{color:var(--white);font-weight:500;text-align:right;max-width:55%}
+.score-wrap{display:flex;flex-direction:column;align-items:center;padding:30px 0 20px}
+.score-c{width:120px;height:120px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:56px;font-weight:700;position:relative}
+.score-c::before{content:'';position:absolute;inset:-4px;border-radius:50%;background:conic-gradient(var(--sc) var(--sp),transparent var(--sp));mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#fff calc(100% - 4px));-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 5px),#fff calc(100% - 4px))}
+.g-a{--sc:#00C853;--sp:90%;color:#00C853;background:rgba(0,200,83,.1)}
+.g-b{--sc:#66BB6A;--sp:72%;color:#66BB6A;background:rgba(102,187,106,.1)}
+.g-c{--sc:#FF9800;--sp:57%;color:#FF9800;background:rgba(255,152,0,.1)}
+.g-d{--sc:#FF3B3B;--sp:35%;color:#FF3B3B;background:rgba(255,59,59,.1)}
+.vbar{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.vbar-l{font-size:12px;color:var(--gray);width:120px;flex-shrink:0}
+.vbar-t{flex:1;height:8px;background:var(--input);border-radius:4px;overflow:hidden}
+.vbar-f{height:100%;border-radius:4px;transition:width .8s ease}
+.det-sec{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:10px}
+.det-sec h4{font-size:12px;color:var(--accent);margin-bottom:8px}
+.dr{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid rgba(255,255,255,.05)}
+.dr .dl{color:var(--gray)}.dr .dv{color:var(--white);font-weight:500}
+.toast{position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;padding:10px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;animation:fadeIn .3s ease}
+</style>
+</head>
+<body>
+<div id="app">
+<div class="statusbar">
+  <span class="t" id="clock">12:30</span>
+  <span style="font-size:11px">IPP v2.1 — Captura</span>
+  <span style="font-size:11px">📶🔋</span>
+</div>
+
+<!-- S1: Método de captura -->
+<div class="screen on" id="s1">
+  <div class="hdr"><div class="htitle">Captura datos personales</div></div>
+  <div class="body">
+    <h1>Nuevo registro</h1><p class="sub">¿Cómo deseas ingresar los datos?</p>
+    <div class="card" onclick="nav('s1b')" style="margin-top:10px">
+      <span class="badge">RECOMENDADO</span>
+      <div class="card-row"><div class="card-ico">✍️</div><div><h3>Manualmente</h3><p>Llena la información de forma manual</p></div></div>
+    </div>
+    <div class="card" style="opacity:.5;cursor:default">
+      <div class="card-row"><div class="card-ico" style="background:linear-gradient(135deg,#38f,#15c)">📷</div><div><h3>Escanear IFE/INE</h3><p>Próximamente disponible</p></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- S1B: Identificador de grupo (NUEVA PANTALLA) -->
+<div class="screen" id="s1b">
+  <div class="hdr"><button class="back" onclick="nav('s1')">←</button><div class="htitle"><div class="conn">CONECTADO</div><span class="pill">Grupo</span></div></div>
+  <div class="body">
+    <h1>Identificación del grupo</h1><p class="sub">Ingresa el nombre o identificador del grupo</p>
+    <div class="fg"><label>Nombre o ID del grupo</label><input id="f_grupo" placeholder="Ej: 25G41048 LEALTAD"></div>
+    <button class="btn btn-p" onclick="nav('s2')">Continuar</button>
+    <button class="btn-s" onclick="nav('s1')">Regresar</button>
+  </div>
+</div>
+
+<!-- S2: Datos personales -->
+<div class="screen" id="s2">
+  <div class="hdr"><button class="back" onclick="nav('s1b')">←</button><div class="htitle"><div class="conn">CONECTADO</div><span class="pill">Datos</span></div></div>
+  <div class="body">
+    <h1>Datos de la emprendedora</h1><p class="sub">Escribe los datos completos</p>
+    <div class="fg"><label>Nombre(s)</label><input id="f_nombre" placeholder="Ej: Saira Ines"></div>
+    <div class="fg"><label>Apellido paterno</label><input id="f_ap_paterno" placeholder="Ej: Fraga"></div>
+    <div class="fg"><label>Apellido materno</label><input id="f_ap_materno" placeholder="Ej: Morales"></div>
+    <div class="fg"><label>CURP</label><input id="f_curp" maxlength="18" placeholder="18 caracteres" style="text-transform:uppercase"></div>
+    <div class="fg"><label>Fecha de nacimiento</label><input type="date" id="f_fecha_nac"></div>
+    <div class="fg"><label>Entidad de nacimiento</label><select id="f_entidad_nac"><option value="">Seleccionar...</option></select></div>
+    <div class="fg"><label>Teléfono</label><input id="f_tel" maxlength="10" placeholder="10 dígitos"></div>
+    <div class="fg"><label>Confirmación teléfono</label><input id="f_tel_conf" maxlength="10" placeholder="Repite el teléfono"></div>
+    <div class="fg"><label>¿La emprendedora es referida?</label>
+      <div class="tgl">
+        <div class="tgl-opt" onclick="setRef('si')"><span>Sí</span><div class="tgl-r" id="ref_si"></div></div>
+        <div class="tgl-opt" onclick="setRef('no')"><span>No</span><div class="tgl-r on" id="ref_no"></div></div>
+      </div>
+    </div>
+    <button class="btn btn-p" onclick="nav('s3')">Continuar</button>
+    <button class="btn-s" onclick="nav('s1b')">Regresar</button>
+  </div>
+</div>
+
+<!-- S3: Dirección -->
+<div class="screen" id="s3">
+  <div class="hdr"><button class="back" onclick="nav('s2')">←</button><div class="htitle"><div class="conn">CONECTADO</div><span class="pill">Dirección</span></div></div>
+  <div class="body">
+    <h1>Dirección de la emprendedora</h1><p class="sub">Completa los siguientes campos</p>
+    <div class="fg"><label>Calle</label><input id="f_calle" placeholder="Nombre de la calle"></div>
+    <div class="fr"><div class="fg"><label>No. exterior</label><input id="f_no_ext" placeholder="Ext"></div><div class="fg"><label>No. interior</label><input id="f_no_int" placeholder="Int"></div></div>
+    <div class="fg"><label>Código postal</label><input id="f_cp" maxlength="5" placeholder="5 dígitos"></div>
+    <div class="fg"><label>Colonia / Población</label><input id="f_colonia" placeholder="Colonia"></div>
+    <div class="fg"><label>Alcaldía / Municipio</label><input id="f_municipio" placeholder="Municipio"></div>
+    <div class="fg"><label>Estado</label><select id="f_estado"><option value="">Seleccionar...</option></select></div>
+    <div class="sectit">Información adicional</div>
+    <div class="fg"><label>Antigüedad del domicilio</label><select id="f_ant_dom"><option value="">Seleccionar...</option><option value="0">Menos de un año</option><option value="1">1 a 3 años</option><option value="2">4 a 6 años</option><option value="3">Más de 6 años</option></select></div>
+    <div class="fg"><label>Tipo de domicilio</label><select id="f_tipo_dom"><option value="">Seleccionar...</option><option value="propia">Propia</option><option value="familiar">Familiar</option><option value="hipoteca">Hipoteca o pagando</option><option value="rentada">Rentada o prestada</option></select></div>
+    <div class="fg"><label>Coincidencia INE-domicilio</label><select id="f_ine_dom"><option value="">Seleccionar...</option><option value="si">Sí coincide</option><option value="no">No coincide</option><option value="na">No cuenta con INE actualizada</option></select></div>
+    <button class="btn btn-p" onclick="nav('s4')">Continuar</button>
+    <button class="btn-s" onclick="nav('s2')">Regresar</button>
+  </div>
+</div>
+
+<!-- S4: Actividad → ahora "Información adicional" + monto crédito -->
+<div class="screen" id="s4">
+  <div class="hdr"><button class="back" onclick="nav('s3')">←</button><div class="htitle"><div class="conn">CONECTADO</div><span class="pill">Actividad</span></div></div>
+  <div class="body">
+    <h1>Información adicional</h1><p class="sub">Datos del negocio y finanzas</p>
+    <div class="sectit">Actividad</div>
+    <div class="fg"><label>Antigüedad del negocio</label><select id="f_ant_neg"><option value="">Seleccionar...</option><option value="0">Apenas abrió negocio</option><option value="1">Menos de un año</option><option value="2">1 a 3 años</option><option value="3">4 a 6 años</option><option value="4">Más de 6 años</option></select></div>
+    <div class="fg"><label>Ubicación del negocio</label><select id="f_ubic_neg"><option value="">Seleccionar...</option></select></div>
+    <div class="sectit">Finanzas</div>
+    <div class="fg"><label>Ingresos semanales ($)</label><input type="number" id="f_ingresos" placeholder="0"></div>
+    <div class="fg"><label>Gastos semanales ($)</label><input type="number" id="f_gastos" placeholder="0"></div>
+    <div class="fg"><label>Capacidad de pago semanal ($)</label><input type="number" id="f_capacidad" placeholder="0"></div>
+    <div class="sectit">Experiencia crediticia</div>
+    <div class="fg"><label>Experiencia con créditos grupales</label><select id="f_exp_grupal"><option value="0">Ninguna</option><option value="1">1</option><option value="2">2 a 3</option><option value="3">Más de 3</option></select></div>
+    <div class="fg"><label>Otros tipos de crédito</label><div class="chips" id="chips_box"></div></div>
+    <div class="sectit">Crédito solicitado</div>
+    <div class="fg"><label>Monto de crédito solicitado ($)</label><input type="number" id="f_monto_solicitado" placeholder="Ej: 5000"></div>
+    <button class="btn btn-p" onclick="nav('s5')">Continuar</button>
+    <button class="btn-s" onclick="nav('s3')">Regresar</button>
+  </div>
+</div>
+
+<!-- S5: Confirmación -->
+<div class="screen" id="s5">
+  <div class="hdr"><button class="back" onclick="nav('s4')">←</button><div class="htitle">Confirmación de datos</div></div>
+  <div class="body"><p class="sub">Verifica que todos los datos sean correctos</p><div id="summary"></div>
+    <button class="btn btn-p" onclick="doCalcIPP()">Guardar y calcular calificación</button>
+    <button class="btn-s" onclick="nav('s4')">Regresar a editar</button>
+  </div>
+</div>
+
+<!-- S6: Calificación inicial -->
+<div class="screen" id="s6">
+  <div class="hdr"><div class="htitle">Calificación inicial</div></div>
+  <div class="body">
+    <div class="score-wrap"><div class="score-c" id="sc6"></div><p id="sc6score" style="font-size:14px;color:var(--gray);margin-top:8px"></p></div>
+    <div id="bars6"></div>
+    <div id="btns6"></div>
+  </div>
+</div>
+
+<!-- S7: Detalle -->
+<div class="screen" id="s7">
+  <div class="hdr"><button class="back" onclick="nav('s6')">←</button><div class="htitle">Detalle de evaluación</div></div>
+  <div class="body">
+    <div class="score-wrap" style="padding:16px 0 10px"><div class="score-c" id="sc7" style="width:80px;height:80px;font-size:36px"></div><p id="sc7num" style="font-size:12px;color:var(--gray);margin-top:6px"></p></div>
+    <div id="det7"></div>
+    <button class="btn-o" onclick="nav('s6')">Regresar</button>
+  </div>
+</div>
+
+</div><!-- end app -->
+
+<script>
+// ============ DATA ============
+const ESTADOS=["Aguascalientes","Baja California","Baja California Sur","Campeche","Chiapas","Chihuahua","Ciudad de México","Coahuila","Colima","Durango","Estado de México","Guanajuato","Guerrero","Hidalgo","Jalisco","Michoacán","Morelos","Nayarit","Nuevo León","Oaxaca","Puebla","Querétaro","Quintana Roo","San Luis Potosí","Sinaloa","Sonora","Tabasco","Tamaulipas","Tlaxcala","Veracruz","Yucatán","Zacatecas"];
+const UBICS=[{v:"tienda",l:"Tienda"},{v:"mercado",l:"Mercado"},{v:"locales-comun",l:"Locales en comunidad"},{v:"taller",l:"Taller"},{v:"fabrica",l:"Fábrica"},{v:"oficina",l:"Oficina"},{v:"domicilio-especial",l:"Domicilio especial"},{v:"kiosco",l:"Kiosco"},{v:"puesto-fijo-tianguis",l:"Puesto fijo tianguis"},{v:"puesto-fijo-via",l:"Puesto fijo vía pública"},{v:"puesto-improv-tianguis",l:"Puesto improvisado tianguis"},{v:"puesto-improv-via",l:"Puesto improvisado vía"},{v:"vehiculo",l:"Vehículo"},{v:"otro-local",l:"Otro con local"},{v:"otro-sin-local",l:"Otro sin local"},{v:"ambulante",l:"Ambulante"},{v:"domicilio-cliente",l:"Domicilio del cliente"},{v:"catalogo",l:"Catálogo"}];
+const CHIPS_D=[{v:"personal",l:"Crédito personal"},{v:"departamental",l:"Crédito departamental"},{v:"nomina",l:"Crédito de nómina"},{v:"hipotecario",l:"Crédito hipotecario"},{v:"auto",l:"Crédito auto/moto"}];
+const T1=["tienda","mercado","oficina","fabrica","taller"],T2=["locales-comun","kiosco","puesto-fijo-tianguis","puesto-fijo-via","domicilio-especial"],T3=["puesto-improv-tianguis","puesto-improv-via","vehiculo","otro-local","catalogo","domicilio-cliente"];
+
+// ============ STATE ============
+let D={referida:"no",chips:[],ippScore:0,ippGrade:""};
+
+// ============ GOOGLE SHEETS CONFIG ============
+// 👇 PEGA TU URL DE GOOGLE APPS SCRIPT AQUÍ 👇
+const SHEETS_URL = "";
+
+async function saveToSheets(data) {
+  if (!SHEETS_URL) { console.log("⚠ Google Sheets no configurado. Datos:", data); return; }
+  try {
+    await fetch(SHEETS_URL, { method: "POST", mode: "no-cors", headers: {"Content-Type":"application/json"}, body: JSON.stringify(data) });
+    showToast("✓ Registro guardado");
+  } catch(e) { console.error("Error guardando:", e); }
+}
+
+function showToast(msg) {
+  const t = document.createElement("div"); t.className="toast"; t.textContent=msg;
+  document.getElementById("app").appendChild(t);
+  setTimeout(()=>t.remove(), 2500);
+}
+
+// ============ INIT ============
+function init() {
+  const es=ESTADOS.map(e=>`<option>${e}</option>`).join("");
+  document.getElementById("f_entidad_nac").innerHTML=`<option value="">Seleccionar...</option>${es}`;
+  document.getElementById("f_estado").innerHTML=`<option value="">Seleccionar...</option>${es}`;
+  document.getElementById("f_ubic_neg").innerHTML=`<option value="">Seleccionar...</option>${UBICS.map(u=>`<option value="${u.v}">${u.l}</option>`).join("")}`;
+  const cb=document.getElementById("chips_box");
+  cb.innerHTML=CHIPS_D.map(c=>`<div class="chip" data-v="${c.v}" onclick="togChip(this)">${c.l}</div>`).join("");
+  updateClock();
+  setInterval(updateClock, 30000);
+}
+
+function updateClock(){
+  const now=new Date();
+  document.getElementById("clock").textContent=now.getHours().toString().padStart(2,'0')+":"+now.getMinutes().toString().padStart(2,'0');
+}
+
+// ============ NAV ============
+function nav(id) {
+  document.querySelectorAll(".screen.on").forEach(s=>{s.classList.remove("on");s.style.display="none"});
+  const s=document.getElementById(id); s.style.display="block";
+  requestAnimationFrame(()=>s.classList.add("on"));
+  document.getElementById("app").scrollTop=0; window.scrollTo(0,0);
+  if(id==="s5") buildSummary();
+}
+
+// ============ HELPERS ============
+function gv(id){const e=document.getElementById(id);return e?e.value:"";}
+function gvt(id){const e=document.getElementById(id);if(!e)return"";if(e.tagName==="SELECT")return e.options[e.selectedIndex]?.text||"";return e.value;}
+function setRef(v){D.referida=v;document.getElementById("ref_si").classList.toggle("on",v==="si");document.getElementById("ref_no").classList.toggle("on",v==="no");}
+function togChip(el){el.classList.toggle("sel");const v=el.dataset.v;if(el.classList.contains("sel")){if(!D.chips.includes(v))D.chips.push(v);}else{D.chips=D.chips.filter(x=>x!==v);}}
+function gc(g){return{A:"#00C853",B:"#66BB6A",C:"#FF9800",D:"#FF3B3B"}[g]||"#fff";}
+function gb(g){return{A:"rgba(0,200,83,.15)",B:"rgba(102,187,106,.15)",C:"rgba(255,152,0,.15)",D:"rgba(255,59,59,.15)"}[g]||"transparent";}
+function sr(l,v){return`<div class="sr"><span class="l">${l}</span><span class="v">${v||"—"}</span></div>`;}
+function dr(l,v){return`<div class="dr"><span class="dl">${l}</span><span class="dv">${v||"—"}</span></div>`;}
+
+// ============ SUMMARY S5 ============
+function buildSummary() {
+  const cl=D.chips.map(c=>{const m={personal:"Personal",departamental:"Departamental",nomina:"Nómina",hipotecario:"Hipotecario",auto:"Auto/moto"};return m[c]||c;}).join(", ")||"Ninguno";
+  const monto = gv("f_monto_solicitado") ? "$"+parseFloat(gv("f_monto_solicitado")).toLocaleString() : "—";
+  document.getElementById("summary").innerHTML=`
+    <div class="summ-sec"><h3>Grupo</h3>${sr("Grupo / ID",gv("f_grupo"))}</div>
+    <div class="summ-sec"><h3>Datos personales</h3>${sr("Nombre",gv("f_nombre")+" "+gv("f_ap_paterno")+" "+gv("f_ap_materno"))}${sr("CURP",gv("f_curp"))}${sr("Fecha nac.",gv("f_fecha_nac"))}${sr("Entidad",gvt("f_entidad_nac"))}${sr("Teléfono",gv("f_tel"))}${sr("Referida",D.referida==="si"?"Sí":"No")}</div>
+    <div class="summ-sec"><h3>Dirección</h3>${sr("Calle",gv("f_calle")+" "+gv("f_no_ext")+(gv("f_no_int")?" Int "+gv("f_no_int"):""))}${sr("CP",gv("f_cp"))}${sr("Colonia",gv("f_colonia"))}${sr("Municipio",gv("f_municipio"))}${sr("Estado",gvt("f_estado"))}${sr("Antigüedad dom.",gvt("f_ant_dom"))}${sr("Tipo domicilio",gvt("f_tipo_dom"))}${sr("INE coincide",gvt("f_ine_dom"))}</div>
+    <div class="summ-sec"><h3>Actividad y finanzas</h3>${sr("Antigüedad negocio",gvt("f_ant_neg"))}${sr("Ubicación",gvt("f_ubic_neg"))}${sr("Ingresos sem.","$"+gv("f_ingresos"))}${sr("Gastos sem.","$"+gv("f_gastos"))}${sr("Capacidad pago","$"+gv("f_capacidad"))}</div>
+    <div class="summ-sec"><h3>Experiencia crediticia</h3>${sr("Créditos grupales",gvt("f_exp_grupal"))}${sr("Otros créditos",cl)}</div>
+    <div class="summ-sec"><h3>Crédito solicitado</h3>${sr("Monto solicitado",monto)}</div>`;
+}
+
+// ============ IPP v2.1 SCORING ============
+function calcIPP() {
+  let s=0;
+
+  // ═══ D1. ESTABILIDAD RESIDENCIAL (30 pts) ═══
+  // Antigüedad domicilio (10): <1→2, 1-3→5, 4-6→8, >6→10
+  const ad=parseInt(gv("f_ant_dom"))||0; s+=[2,5,8,10][ad]||0;
+  // Tipo domicilio (8): propia→8, hipoteca→7, familiar→5, rentada→3
+  s+=({propia:8,familiar:5,hipoteca:7,rentada:3}[gv("f_tipo_dom")])||0;
+  // INE coincidencia (12): si→12, no→6, na→3
+  s+=({si:12,no:6,na:3}[gv("f_ine_dom")])||0;
+
+  // ═══ D2. ACTIVIDAD ECONÓMICA (25 pts) ═══
+  // Antigüedad negocio (12): apenas→3, <1→6, 1-3→8, 4-6→10, >6→12
+  const an=parseInt(gv("f_ant_neg"))||0; s+=[3,6,8,10,12][an]||0;
+  // Ubicación negocio (13): tier1→13, tier2→9, tier3→5
+  const ub=gv("f_ubic_neg"); if(T1.includes(ub))s+=13;else if(T2.includes(ub))s+=9;else if(T3.includes(ub))s+=5;else s+=5;
+
+  // ═══ D3. EXPERIENCIA CREDITICIA (20 pts) ═══
+  // Exp grupal (12): ninguno→6, 1→9, 2-3→9, >3→12
+  const eg=parseInt(gv("f_exp_grupal"))||0; s+=[6,9,9,12][eg]||6;
+  // Otros créditos (5): 2+→5, <2→3
+  s+=(D.chips.length>=2?5:3);
+  // Referida (3): si→3, no→1
+  s+=(D.referida==="si"?3:1);
+
+  // ═══ D4. CAPACIDAD FINANCIERA (25 pts) ═══
+  const ing=parseFloat(gv("f_ingresos"))||0,gas=parseFloat(gv("f_gastos"))||0,cap=parseFloat(gv("f_capacidad"))||0;
+  // Nivel ingreso (8): >=8000→8, 5000-7999→6, 1000-4999→4, <1000→2
+  if(ing>=8000)s+=8;else if(ing>=5000)s+=6;else if(ing>=1000)s+=4;else s+=2;
+  // Coherencia ingreso vs gasto (8): gasto<=70%→8, 71-85%→5, >85%→2
+  const rg=ing>0?gas/ing:999;
+  if(rg<=0.70)s+=8;else if(rg<=0.85)s+=5;else s+=2;
+  // Capacidad pago razonable (9): cap<=40%ing→9, 41-60%→5, >60%→2
+  const rc=ing>0?cap/ing:999;
+  if(rc<=0.40)s+=9;else if(rc<=0.60)s+=5;else s+=2;
+
+  s=Math.min(s,100);
+
+  // ═══ PENALIZADORES (sin cambio) ═══
+  const fl=ing-gas;
+  if(fl>=1000){}else if(fl>=500)s-=5;else if(fl>=0)s-=10;else s-=20;
+  let rp=fl>0?cap/fl:999;if(rp<=.4){}else if(rp<=.6)s-=5;else if(rp<=1)s-=10;else s-=20;
+  let rgg=ing>0?gas/ing:999;if(rgg<=.6){}else if(rgg<=.75)s-=3;else if(rgg<=.9)s-=7;else s-=12;
+
+  s=Math.max(0,Math.min(100,s));
+  D.ippScore=s; D.ippGrade=s>=80?"A":s>=65?"B":s>=50?"C":"D";
+  return{score:s,grade:D.ippGrade};
+}
+
+// ============ BARS (aligned to v2.1 weights) ============
+function getBars() {
+  const ing=parseFloat(gv("f_ingresos"))||0,gas=parseFloat(gv("f_gastos"))||0,cap=parseFloat(gv("f_capacidad"))||0,fl=ing-gas;
+  const ad=parseInt(gv("f_ant_dom"))||0,an=parseInt(gv("f_ant_neg"))||0;
+
+  // D1 Estabilidad: max 30
+  const stP=([2,5,8,10][ad]||0)+({propia:8,familiar:5,hipoteca:7,rentada:3}[gv("f_tipo_dom")]||0)+({si:12,no:6,na:3}[gv("f_ine_dom")]||0);
+  const stV=Math.min(Math.max(Math.round(stP/30*100),5),100);
+
+  // D2 Actividad: max 25
+  const acP=([3,6,8,10,12][an]||0)+(T1.includes(gv("f_ubic_neg"))?13:T2.includes(gv("f_ubic_neg"))?9:5);
+  const acV=Math.min(Math.max(Math.round(acP/25*100),5),100);
+
+  // D3 Experiencia: max 20
+  const exP=([6,9,9,12][parseInt(gv("f_exp_grupal"))||0]||6)+(D.chips.length>=2?5:3)+(D.referida==="si"?3:1);
+  const exV=Math.min(Math.max(Math.round(exP/20*100),5),100);
+
+  // D4 Capacidad: max 25
+  let fnP=0;
+  if(ing>=8000)fnP+=8;else if(ing>=5000)fnP+=6;else if(ing>=1000)fnP+=4;else fnP+=2;
+  const rgb=ing>0?gas/ing:999; if(rgb<=0.70)fnP+=8;else if(rgb<=0.85)fnP+=5;else fnP+=2;
+  const rcb=ing>0?cap/ing:999; if(rcb<=0.40)fnP+=9;else if(rcb<=0.60)fnP+=5;else fnP+=2;
+  // Penalties for bar display
+  let fp=0;if(fl>=1000){}else if(fl>=500)fp-=5;else if(fl>=0)fp-=10;else fp-=20;
+  let rp=fl>0?cap/fl:999;if(rp<=.4){}else if(rp<=.6)fp-=5;else if(rp<=1)fp-=10;else fp-=20;
+  let rgg=ing>0?gas/ing:999;if(rgg<=.6){}else if(rgg<=.75)fp-=3;else if(rgg<=.9)fp-=7;else fp-=12;
+  const fnV=Math.min(Math.max(Math.round((fnP+fp+35)/60*100),5),100);
+
+  return{stV,fnV,acV,exV};
+}
+
+function barColor(v){return v>=65?"#00C853":v>=40?"#FF9800":"#FF3B3B";}
+function barHTML(label,val){return`<div class="vbar"><span class="vbar-l">${label}</span><div class="vbar-t"><div class="vbar-f" style="width:${val}%;background:${barColor(val)}"></div></div></div>`;}
+
+// ============ CALC + RENDER S6 ============
+function doCalcIPP() {
+  calcIPP();
+  renderS6();
+  nav("s6");
+}
+
+function renderS6() {
+  const g=D.ippGrade;
+  document.getElementById("sc6").className="score-c g-"+g.toLowerCase();
+  document.getElementById("sc6").textContent=g;
+  document.getElementById("sc6score").textContent="Score: "+D.ippScore+"/100";
+  const b=getBars();
+  document.getElementById("bars6").innerHTML=
+    barHTML("Est. Residencial",b.stV)+
+    barHTML("Act. Económica",b.acV)+
+    barHTML("Exp. Crediticia",b.exV)+
+    barHTML("Cap. Financiera",b.fnV);
+
+  document.getElementById("btns6").innerHTML=`
+    <button class="btn btn-p" onclick="resetApp()">Ingresar nuevo registro</button>
+    <button class="btn-s" onclick="buildDet7();nav('s7')">Ver detalle de evaluación</button>`;
+
+  buildDet7();
+  saveAllData();
+}
+
+// ============ SAVE ALL DATA TO SHEETS ============
+function saveAllData() {
+  const cl=D.chips.map(c=>{const m={personal:"Personal",departamental:"Departamental",nomina:"Nómina",hipotecario:"Hipotecario",auto:"Auto/moto"};return m[c]||c;}).join(", ")||"Ninguno";
+  const ing=parseFloat(gv("f_ingresos"))||0,gas=parseFloat(gv("f_gastos"))||0,fl=ing-gas;
+
+  const data = {
+    // Meta
+    fecha_registro: new Date().toISOString(),
+    // Campo 1: Grupo
+    grupo: gv("f_grupo"),
+    // Campos 2-10: Datos personales
+    nombre: gv("f_nombre"),
+    apellido_paterno: gv("f_ap_paterno"),
+    apellido_materno: gv("f_ap_materno"),
+    curp: gv("f_curp"),
+    fecha_nacimiento: gv("f_fecha_nac"),
+    entidad_nacimiento: gvt("f_entidad_nac"),
+    telefono: gv("f_tel"),
+    telefono_confirmacion: gv("f_tel_conf"),
+    referida: D.referida,
+    // Campos 11-19: Dirección
+    calle: gv("f_calle"),
+    no_exterior: gv("f_no_ext"),
+    no_interior: gv("f_no_int"),
+    codigo_postal: gv("f_cp"),
+    colonia: gv("f_colonia"),
+    municipio: gv("f_municipio"),
+    estado: gvt("f_estado"),
+    antiguedad_domicilio: gvt("f_ant_dom"),
+    tipo_domicilio: gvt("f_tipo_dom"),
+    coincidencia_ine: gvt("f_ine_dom"),
+    // Campos 20-27: Actividad y finanzas
+    antiguedad_negocio: gvt("f_ant_neg"),
+    ubicacion_negocio: gvt("f_ubic_neg"),
+    ingresos_semanales: gv("f_ingresos"),
+    gastos_semanales: gv("f_gastos"),
+    capacidad_pago: gv("f_capacidad"),
+    experiencia_grupal: gvt("f_exp_grupal"),
+    otros_creditos: cl,
+    // Campo 28: Monto solicitado (nuevo, informativo)
+    monto_solicitado: gv("f_monto_solicitado"),
+    // Campos 29-31: Resultados IPP
+    ipp_score: D.ippScore,
+    ipp_grado: D.ippGrade,
+    flujo_neto: fl
+  };
+
+  saveToSheets(data);
+}
+
+// ============ DETAIL S7 ============
+function buildDet7() {
+  const g=D.ippGrade,fl=parseFloat(gv("f_ingresos"))-parseFloat(gv("f_gastos"));
+  document.getElementById("sc7").className="score-c g-"+g.toLowerCase();document.getElementById("sc7").textContent=g;
+  document.getElementById("sc7num").textContent="Score: "+D.ippScore+"/100";
+  const cl=D.chips.map(c=>({personal:"Personal",departamental:"Departamental",nomina:"Nómina",hipotecario:"Hipotecario",auto:"Auto/moto"}[c]||c)).join(", ")||"Ninguno";
+  const monto = gv("f_monto_solicitado") ? "$"+parseFloat(gv("f_monto_solicitado")).toLocaleString() : "—";
+  document.getElementById("det7").innerHTML=`
+    <div class="det-sec"><h4>👥 Grupo</h4>${dr("Grupo / ID",gv("f_grupo"))}</div>
+    <div class="det-sec"><h4>💰 Ingresos y gastos</h4>${dr("Ingresos sem.","$"+gv("f_ingresos"))}${dr("Gastos sem.","$"+gv("f_gastos"))}${dr("Capacidad de pago","$"+gv("f_capacidad"))}${dr("Flujo neto","$"+fl)}</div>
+    <div class="det-sec"><h4>🏪 Negocio / Actividad</h4>${dr("Antigüedad",gvt("f_ant_neg"))}${dr("Ubicación",gvt("f_ubic_neg"))}${dr("¿Referida?",D.referida==="si"?"Sí":"No")}</div>
+    <div class="det-sec"><h4>🏠 Domicilio</h4>${dr("CP",gv("f_cp"))}${dr("Tipo",gvt("f_tipo_dom"))}${dr("Antigüedad",gvt("f_ant_dom"))}${dr("INE coincide",gvt("f_ine_dom"))}</div>
+    <div class="det-sec"><h4>📊 Experiencia</h4>${dr("Créditos grupales",gvt("f_exp_grupal"))}${dr("Otros créditos",cl)}</div>
+    <div class="det-sec"><h4>💵 Crédito solicitado</h4>${dr("Monto solicitado",monto)}</div>`;
+}
+
+// ============ RESET ============
+function resetApp(){
+  D.referida="no"; D.chips=[]; D.ippScore=0; D.ippGrade="";
+  document.querySelectorAll(".fg input").forEach(i=>i.value="");
+  document.querySelectorAll(".fg select").forEach(s=>s.selectedIndex=0);
+  document.querySelectorAll(".chip").forEach(c=>c.classList.remove("sel"));
+  setRef("no");
+  nav("s1");
+}
+
+// Init
+init();
+</script>
+</body>
+</html>
