@@ -228,15 +228,14 @@ const SHEETS_URL = "https://script.google.com/macros/s/AKfycbxnboVFEEqZ9sZGweF5n
 async function saveToSheets(data) {
   if (!SHEETS_URL) { console.log("⚠ Google Sheets no configurado. Datos:", data); return; }
   try {
-    await fetch(SHEETS_URL, { method: "POST", mode: "no-cors", headers: {"Content-Type":"application/json"}, body: JSON.stringify(data) });
+    // Construir URL con parámetros (compatible con doGet + no-cors)
+    const params = new URLSearchParams();
+    Object.keys(data).forEach(key => params.append(key, data[key] ?? ""));
+    const url = SHEETS_URL + "?" + params.toString();
+    
+    await fetch(url, { method: "GET", mode: "no-cors" });
     showToast("✓ Registro guardado");
   } catch(e) { console.error("Error guardando:", e); }
-}
-
-function showToast(msg) {
-  const t = document.createElement("div"); t.className="toast"; t.textContent=msg;
-  document.getElementById("app").appendChild(t);
-  setTimeout(()=>t.remove(), 2500);
 }
 
 // ============ INIT ============
