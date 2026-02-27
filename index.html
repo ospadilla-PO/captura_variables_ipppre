@@ -228,13 +228,16 @@ const SHEETS_URL = "https://script.google.com/macros/s/AKfycbxnboVFEEqZ9sZGweF5n
 async function saveToSheets(data) {
   if (!SHEETS_URL) { console.log("⚠ Google Sheets no configurado. Datos:", data); return; }
   try {
-    // Construir URL con parámetros (compatible con doGet + no-cors)
     const params = new URLSearchParams();
     Object.keys(data).forEach(key => params.append(key, data[key] ?? ""));
     const url = SHEETS_URL + "?" + params.toString();
-    
     await fetch(url, { method: "GET", mode: "no-cors" });
-    showToast("✓ Registro guardado");
+    // Toast simple sin función externa
+    const t = document.createElement("div");
+    t.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#00C853;color:#fff;padding:10px 20px;border-radius:20px;font-weight:600;z-index:9999;";
+    t.textContent = "✓ Registro guardado";
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
   } catch(e) { console.error("Error guardando:", e); }
 }
 
