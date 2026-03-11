@@ -184,7 +184,7 @@ h1{font-size:20px;font-weight:700;margin-bottom:4px;text-align:center}
 <div class="screen" id="s5">
   <div class="hdr"><button class="back" onclick="nav('s4')">←</button><div class="htitle">Confirmación de datos</div></div>
   <div class="body"><p class="sub">Verifica que todos los datos sean correctos</p><div id="summary"></div>
-    <button class="btn btn-p" onclick="doCalcIPP()">Guardar y calcular calificación</button>
+    <button class="btn btn-p" onclick="validateAndCalc()">Guardar y calcular calificación</button>
     <button class="btn-s" onclick="nav('s4')">Regresar a editar</button>
   </div>
 </div>
@@ -216,7 +216,7 @@ h1{font-size:20px;font-weight:700;margin-bottom:4px;text-align:center}
 const ESTADOS=["Aguascalientes","Baja California","Baja California Sur","Campeche","Chiapas","Chihuahua","Ciudad de México","Coahuila","Colima","Durango","Estado de México","Guanajuato","Guerrero","Hidalgo","Jalisco","Michoacán","Morelos","Nayarit","Nuevo León","Oaxaca","Puebla","Querétaro","Quintana Roo","San Luis Potosí","Sinaloa","Sonora","Tabasco","Tamaulipas","Tlaxcala","Veracruz","Yucatán","Zacatecas"];
 const UBICS=[{v:"tienda",l:"Tienda"},{v:"mercado",l:"Mercado"},{v:"locales-comun",l:"Locales en comunidad"},{v:"taller",l:"Taller"},{v:"fabrica",l:"Fábrica"},{v:"oficina",l:"Oficina"},{v:"domicilio-especial",l:"Domicilio especial"},{v:"kiosco",l:"Kiosco"},{v:"puesto-fijo-tianguis",l:"Puesto fijo tianguis"},{v:"puesto-fijo-via",l:"Puesto fijo vía pública"},{v:"puesto-improv-tianguis",l:"Puesto improvisado tianguis"},{v:"puesto-improv-via",l:"Puesto improvisado vía"},{v:"vehiculo",l:"Vehículo"},{v:"otro-local",l:"Otro con local"},{v:"otro-sin-local",l:"Otro sin local"},{v:"ambulante",l:"Ambulante"},{v:"domicilio-cliente",l:"Domicilio del cliente"},{v:"catalogo",l:"Catálogo"}];
 const CHIPS_D=[{v:"personal",l:"Crédito personal"},{v:"departamental",l:"Crédito departamental"},{v:"nomina",l:"Crédito de nómina"},{v:"hipotecario",l:"Crédito hipotecario"},{v:"auto",l:"Crédito auto/moto"}];
-const T1=["tienda","mercado","oficina","fabrica","taller"],T2=["locales-comun","kiosco","puesto-fijo-tianguis","puesto-fijo-via","domicilio-especial"],T3=["puesto-improv-tianguis","puesto-improv-via","vehiculo","otro-local","catalogo","domicilio-cliente"];
+const T1=["tienda","mercado","oficina","fabrica","taller"],T2=["locales-comun","kiosco","puesto-fijo-tianguis","puesto-fijo-via","domicilio-especial"],T3=["puesto-improv-tianguis","puesto-improv-via","vehiculo","otro-local","catalogo","domicilio-cliente","ambulante","otro-sin-local"];
 
 // ============ STATE ============
 let D={referida:"no",chips:[],ippScore:0,ippGrade:""};
@@ -297,10 +297,12 @@ function calcIPP() {
   // ═══ D1. ESTABILIDAD RESIDENCIAL (30 pts) ═══
   // Antigüedad domicilio (10): <1→2, 1-3→5, 4-6→8, >6→10
   const ad=parseInt(gv("f_ant_dom"))||0; s+=[2,5,8,10][ad]||0;
-  // Tipo domicilio (8): propia→8, hipoteca→7, familiar→5, rentada→3
-  s+=({propia:8,familiar:5,hipoteca:7,rentada:3}[gv("f_tipo_dom")])||0;
-  // INE coincidencia (12): si→12, no→6, na→3
-  s+=({si:12,no:6,na:3}[gv("f_ine_dom")])||0;
+  // Tipo domicilio (8): propia→8, hipoteca→6, familiar→5, rentada→3
+  // Hipoteca=6 (vs Propia=8): deuda activa garantizada implica compromiso
+  // financiero mensual fijo que reduce flujo disponible para el crédito grupal
+  s+=({propia:8,familiar:5,hipoteca:6,rentada:3}[gv("f_tipo_dom")])||3;
+  // INE coincidencia (12): si→12, no→6, na→3. Fallback 3 si campo vacío.
+  s+=({si:12,no:6,na:3}[gv("f_ine_dom")])||3;
 
   // ═══ D2. ACTIVIDAD ECONÓMICA (25 pts) ═══
   // Antigüedad negocio (12): apenas→3, <1→6, 1-3→8, 4-6→10, >6→12
@@ -320,9 +322,10 @@ function calcIPP() {
   const ing=parseFloat(gv("f_ingresos"))||0,gas=parseFloat(gv("f_gastos"))||0,cap=parseFloat(gv("f_capacidad"))||0;
   // Nivel ingreso (8): >=8000→8, 5000-7999→6, 1000-4999→4, <1000→2
   if(ing>=8000)s+=8;else if(ing>=5000)s+=6;else if(ing>=1000)s+=4;else s+=2;
-  // Coherencia ingreso vs gasto (8): gasto<=70%→8, 71-85%→5, >85%→2
+  // Coherencia ingreso vs gasto (8): gasto<=60%→8, 61-85%→5, >85%→2
+  // Corte alineado a P3 (>60% penaliza) — elimina zona gris 61-70%
   const rg=ing>0?gas/ing:999;
-  if(rg<=0.70)s+=8;else if(rg<=0.85)s+=5;else s+=2;
+  if(rg<=0.60)s+=8;else if(rg<=0.85)s+=5;else s+=2;
   // Capacidad pago razonable (9): cap<=40%ing→9, 41-60%→5, >60%→2
   const rc=ing>0?cap/ing:999;
   if(rc<=0.40)s+=9;else if(rc<=0.60)s+=5;else s+=2;
@@ -346,7 +349,7 @@ function getBars() {
   const ad=parseInt(gv("f_ant_dom"))||0,an=parseInt(gv("f_ant_neg"))||0;
 
   // D1 Estabilidad: max 30
-  const stP=([2,5,8,10][ad]||0)+({propia:8,familiar:5,hipoteca:7,rentada:3}[gv("f_tipo_dom")]||0)+({si:12,no:6,na:3}[gv("f_ine_dom")]||0);
+  const stP=([2,5,8,10][ad]||0)+({propia:8,familiar:5,hipoteca:6,rentada:3}[gv("f_tipo_dom")]||3)+({si:12,no:6,na:3}[gv("f_ine_dom")]||3);
   const stV=Math.min(Math.max(Math.round(stP/30*100),5),100);
 
   // D2 Actividad: max 25
@@ -360,7 +363,8 @@ function getBars() {
   // D4 Capacidad: max 25
   let fnP=0;
   if(ing>=8000)fnP+=8;else if(ing>=5000)fnP+=6;else if(ing>=1000)fnP+=4;else fnP+=2;
-  const rgb=ing>0?gas/ing:999; if(rgb<=0.70)fnP+=8;else if(rgb<=0.85)fnP+=5;else fnP+=2;
+  // Coherencia getBars: corte ≤0.60 alineado a P3
+  const rgb=ing>0?gas/ing:999; if(rgb<=0.60)fnP+=8;else if(rgb<=0.85)fnP+=5;else fnP+=2;
   const rcb=ing>0?cap/ing:999; if(rcb<=0.40)fnP+=9;else if(rcb<=0.60)fnP+=5;else fnP+=2;
   // Penalties for bar display
   let fp=0;if(fl>=1000){}else if(fl>=500)fp-=5;else if(fl>=0)fp-=10;else fp-=20;
@@ -373,6 +377,53 @@ function getBars() {
 
 function barColor(v){return v>=65?"#00C853":v>=40?"#FF9800":"#FF3B3B";}
 function barHTML(label,val){return`<div class="vbar"><span class="vbar-l">${label}</span><div class="vbar-t"><div class="vbar-f" style="width:${val}%;background:${barColor(val)}"></div></div></div>`;}
+
+// ============ VALIDACIÓN DE CAMPOS REQUERIDOS ============
+const CAMPOS_REQUERIDOS = [
+  {id:"f_nombre",       label:"Nombre(s)"},
+  {id:"f_ap_paterno",   label:"Apellido paterno"},
+  {id:"f_curp",         label:"CURP"},
+  {id:"f_fecha_nac",    label:"Fecha de nacimiento"},
+  {id:"f_tel",          label:"Teléfono"},
+  {id:"f_calle",        label:"Calle"},
+  {id:"f_cp",           label:"Código postal"},
+  {id:"f_colonia",      label:"Colonia"},
+  {id:"f_municipio",    label:"Municipio"},
+  {id:"f_estado",       label:"Estado"},
+  {id:"f_ant_dom",      label:"Antigüedad del domicilio"},
+  {id:"f_tipo_dom",     label:"Tipo de domicilio"},
+  {id:"f_ine_dom",      label:"Coincidencia INE"},
+  {id:"f_ant_neg",      label:"Antigüedad del negocio"},
+  {id:"f_ubic_neg",     label:"Ubicación del negocio"},
+  {id:"f_ingresos",     label:"Ingresos semanales"},
+  {id:"f_gastos",       label:"Gastos semanales"},
+  {id:"f_capacidad",    label:"Capacidad de pago"},
+];
+
+function validateForm() {
+  const faltantes = CAMPOS_REQUERIDOS.filter(c => {
+    const el = document.getElementById(c.id);
+    if (!el) return false;
+    return !el.value || el.value.trim() === "" || el.value === "0";
+  });
+  if (faltantes.length === 0) return true;
+  const lista = faltantes.map(c => "• " + c.label).join("\n");
+  showToast("⚠ Completa los campos requeridos:\n" + lista, "#FF9800");
+  return false;
+}
+
+function showToast(msg, color) {
+  const t = document.createElement("div");
+  t.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:"+(color||"#00C853")+";color:#000;padding:12px 20px;border-radius:12px;font-weight:600;z-index:9999;font-size:13px;max-width:300px;text-align:left;white-space:pre-line;box-shadow:0 4px 16px rgba(0,0,0,.3);";
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 4000);
+}
+
+function validateAndCalc() {
+  if (!validateForm()) return;
+  doCalcIPP();
+}
 
 // ============ CALC + RENDER S6 ============
 function doCalcIPP() {
